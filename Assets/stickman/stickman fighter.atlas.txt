@@ -1,0 +1,125 @@
+
+stickman fighter.png
+size: 3476, 290
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+stickman/arm_L
+  rotate: false
+  xy: 2190, 205
+  size: 435, 83
+  orig: 435, 83
+  offset: 0, 0
+  index: -1
+stickman/arm_R
+  rotate: false
+  xy: 1889, 9
+  size: 434, 82
+  orig: 434, 82
+  offset: 0, 0
+  index: -1
+stickman/arm_stroke_L
+  rotate: false
+  xy: 788, 173
+  size: 470, 115
+  orig: 470, 115
+  offset: 0, 0
+  index: -1
+stickman/arm_stroke_R
+  rotate: false
+  xy: 1260, 174
+  size: 471, 114
+  orig: 471, 114
+  offset: 0, 0
+  index: -1
+stickman/body
+  rotate: true
+  xy: 1432, 7
+  size: 70, 383
+  orig: 70, 383
+  offset: 0, 0
+  index: -1
+stickman/body_stroke
+  rotate: true
+  xy: 1889, 93
+  size: 101, 396
+  orig: 101, 413
+  offset: 0, 8
+  index: -1
+stickman/head
+  rotate: false
+  xy: 3223, 37
+  size: 251, 251
+  orig: 251, 251
+  offset: 0, 0
+  index: -1
+stickman/head_stroke
+  rotate: false
+  xy: 2627, 6
+  size: 282, 282
+  orig: 282, 282
+  offset: 0, 0
+  index: -1
+stickman/leg_L
+  rotate: true
+  xy: 1432, 79
+  size: 93, 455
+  orig: 93, 455
+  offset: 0, 0
+  index: -1
+stickman/leg_R
+  rotate: true
+  xy: 1733, 196
+  size: 92, 455
+  orig: 92, 455
+  offset: 0, 0
+  index: -1
+stickman/leg_stroke_L
+  rotate: true
+  xy: 943, 47
+  size: 124, 487
+  orig: 124, 487
+  offset: 0, 0
+  index: -1
+stickman/leg_stroke_R
+  rotate: true
+  xy: 453, 37
+  size: 126, 488
+  orig: 126, 488
+  offset: 0, 0
+  index: -1
+stickman/shadow
+  rotate: false
+  xy: 453, 2
+  size: 537, 33
+  orig: 537, 33
+  offset: 0, 0
+  index: -1
+weapon/pistol
+  rotate: false
+  xy: 2325, 51
+  size: 226, 152
+  orig: 226, 152
+  offset: 0, 0
+  index: -1
+weapon/rifle
+  rotate: false
+  xy: 2, 2
+  size: 449, 161
+  orig: 449, 161
+  offset: 0, 0
+  index: -1
+weapon/sword
+  rotate: true
+  xy: 2, 165
+  size: 123, 784
+  orig: 135, 793
+  offset: 8, 0
+  index: -1
+weapon/uzi
+  rotate: false
+  xy: 2911, 52
+  size: 310, 236
+  orig: 310, 236
+  offset: 0, 0
+  index: -1
