@@ -1,0 +1,55 @@
+# README: Unity Editor Installation (2022.3.62f3)
+
+Diese Dokumentation beschreibt die Schritt-für-Schritt-Installation der spezifischen Unity Editor-Version **2022.3.62f3**. Da es sich hierbei um eine Long-Term Support (LTS) Version handelt, bietet sie maximale Stabilität für laufende und neue Projekte.
+
+---
+
+## 1. Voraussetzungen
+
+Bevor Sie mit der Installation beginnen, stellen Sie bitte sicher, dass die folgenden Komponenten vorhanden sind:
+* Ein aktives **Unity-Konto** (Unity ID) für die Lizenzaktivierung.
+* Ein vorinstallierter **Unity Hub** (wird dringend für die Verwaltung der Versionen empfohlen).
+* Mindestens **10–20 GB freier Festplattenspeicher** (abhängig von den ausgewählten Build-Modulen).
+
+---
+
+## 2. Installationsmethoden
+
+Es gibt zwei Wege, diese Version zu installieren. Methode A über den Unity Hub wird ausdrücklich empfohlen.
+
+### Methode A: Installation via Unity Hub Link (Empfohlen)
+
+1. Öffnen Sie Ihren Webbrowser und navigieren Sie zum offiziellen Unity-Download-Archiv:
+   👉 [Unity Editor Archiv](https://unity.com/de/releases/editor/archive)
+2. Suchen Sie auf der Seite nach der Registerkarte **Unity 2022.x**.
+3. Scrollen Sie nach unten, bis Sie exakt die Version `2022.3.62f3` finden.
+4. Klicken Sie auf die blaue Schaltfläche **Unity Hub** direkt neben der Versionsnummer.
+5. Ihr Browser wird Sie fragen, ob die Anwendung "Unity Hub" geöffnet werden darf. Bestätigen Sie dies.
+6. Der Unity Hub öffnet sich automatisch und leitet Sie direkt in das Modalauswahl-Fenster für die Installation weiter.
+
+### Methode B: Manueller Download über den Installer
+
+1. Sollte die Hub-Zuweisung fehlschlagen, wählen Sie im Archiv das Dropdown-Menü **Downloads** für die Version `2022.3.62f3`.
+2. Wählen Sie das für Ihr Betriebssystem passende Installationsprogramm aus:
+   * **Windows:** Unity Installer oder Editor (64-bit)
+   * **macOS:** Unity Installer oder Editor (Intel / Apple Silicon)
+   * **Linux:** Unity Editor Torrent oder Hub-Installationspaket
+3. Führen Sie die heruntergeladene Datei aus und folgen Sie den Bildschirmanweisungen.
+
+---
+
+## 3. Modulauswahl & Komponenten
+
+Während des Installationsprozesses im Hub werden Sie nach den gewünschten Modulen gefragt. Wählen Sie diese sorgfältig aus:
+
+* **DevTools:** `Microsoft Visual Studio` (falls noch keine Entwicklungsumgebung wie VS Code oder JetBrains Rider installiert ist).
+* **Platforms (Plattformunterstützung):** Wählen Sie die Zielplattformen für Ihr Projekt aus (z. B. *Android Build Support*, *iOS Build Support*, *WebGL Build Support* oder *Windows Build Support*).
+* **Documentation:** Kann abgewählt werden, um ca. 1 GB Speicherplatz zu sparen, falls eine permanente Internetverbindung vorhanden ist.
+
+---
+
+## 4. Projekt-Verknüpfung
+
+Sobald die Installation abgeschlossen ist, taucht die Version im Unity Hub unter dem Reiter **Installs** auf. Sie können nun:
+1. Ein neues Projekt erstellen und im Dropdown-Menü exakt `2022.3.62f3` auswählen.
+2. Ein bestehendes Projekt im Reiter **Projects** über das Versions-Dropdown auf diese Version migrieren.
