@@ -3,7 +3,7 @@ using Spine.Unity;
 using Photon.Pun;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class PlayerController : MonoBehaviourPun
+public class PlayerController : MonoBehaviourPun, IPunObservable
 {
     [Header("Components")]
     public SkeletonAnimation skeletonAnimation;
@@ -11,15 +11,13 @@ public class PlayerController : MonoBehaviourPun
 
     [Header("Movement")]
     public float moveSpeed = 15f;
-    public float jumpForce = 35f; // Etwas höherer Sprung
+    public float jumpForce = 35f;
     public string animationFolder = "1_";
 
-    [Header("Combat & Health System")]
+    [Header("Combat & Health")]
     public float maxHealth = 100f;
     public float currentHealth = 100f;
-    public Transform attackPoint; // Leeres GameObject vor der Faust/Fuß
-    public float attackRange = 1.5f;
-    public LayerMask opponentLayer;
+    public float attackRange = 3.5f; 
 
     [Header("Ground Check Settings")]
     public string groundTag = "Floor";
@@ -28,8 +26,8 @@ public class PlayerController : MonoBehaviourPun
     private string currentAnimation = "";
     private bool isAttacking = false;
     private bool isBlocking = false;
-    private float lastMoveInput = 0f;
     private float moveInput = 0f;
+    private bool isDead = false;
 
     private Transform opponent;
 
@@ -54,14 +52,31 @@ public class PlayerController : MonoBehaviourPun
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
 
-        // Deaktiviert Kollision zwischen Playern, damit man drüber springen kann
-        Physics2D.IgnoreLayerCollision(gameObject.layer, gameObject.layer, true);
+        // Deaktiviert Kollision zwischen Hitboxen der Player komplett -> Tekken Jump-Over
+        Collider2D myCollider = GetComponent<Collider2D>();
+        if (myCollider != null)
+        {
+            PlayerController[] players = FindObjectsOfType<PlayerController>();
+            foreach (var p in players)
+            {
+                if (p != this)
+                {
+                    Collider2D otherCollider = p.GetComponent<Collider2D>();
+                    if (otherCollider != null)
+                    {
+                        Physics2D.IgnoreCollision(myCollider, otherCollider, true);
+                    }
+                }
+            }
+        }
 
         PlaySpineAnimation("idle active", true);
     }
 
     void Update()
     {
+        if (isDead) return;
+
         FindOpponent();
         HandleFacingDirection();
 
@@ -87,43 +102,45 @@ public class PlayerController : MonoBehaviourPun
             return;
         }
 
-        // Tekken Angriffe (Left, Right, Up, Down) -> Schaden & Anims
+        // Attacks
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab single", 0.25f, 10f);
+            Debug.Log("💥 [ATTACK] Jab Single gestartet!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab single", 0.25f, 15f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab double", 0.3f, 15f);
+            Debug.Log("💥 [ATTACK] Jab Double gestartet!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab double", 0.3f, 25f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick high", 0.35f, 20f);
+            Debug.Log("💥 [ATTACK] Kick High gestartet!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick high", 0.35f, 35f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick low", 0.3f, 12f);
+            Debug.Log("💥 [ATTACK] Kick Low gestartet!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick low", 0.3f, 20f);
             return;
         }
 
-        // FIXED MOVEMENT: D = Immer Vorwärts (auf Gegner zu), A = Immer Rückwärts (vom Gegner weg)
+        // Steuerung
         moveInput = 0f;
 
         if (Input.GetKey(KeyCode.D))
         {
-            moveInput = 1f; // Vorwärts
+            moveInput = 1f;
         }
         else if (Input.GetKey(KeyCode.A))
         {
-            moveInput = -0.5f; // Rückwärts
+            moveInput = -0.5f;
         }
 
-        if (isGrounded) lastMoveInput = moveInput;
-
-        // W = Sprung
+        // Jump (W)
         if (Input.GetKeyDown(KeyCode.W) && isGrounded && rb != null)
         {
             rb.velocity = new Vector2(rb.velocity.x, 0);
@@ -137,12 +154,11 @@ public class PlayerController : MonoBehaviourPun
 
     void FixedUpdate()
     {
-        if (!photonView.IsMine) return;
+        if (!photonView.IsMine || isDead) return;
 
         if (!isAttacking && !isBlocking)
         {
-            // Berechnet echte Welt-Richtung basierend auf dem Blick zum Gegner
-            float directionSign = skeletonAnimation.Skeleton.ScaleX > 0 ? 1f : -1f;
+            float directionSign = (skeletonAnimation != null && skeletonAnimation.Skeleton.ScaleX > 0) ? 1f : -1f;
             rb.velocity = new Vector2(moveInput * moveSpeed * directionSign, rb.velocity.y);
         }
     }
@@ -157,6 +173,13 @@ public class PlayerController : MonoBehaviourPun
             if (p != this)
             {
                 opponent = p.transform;
+
+                Collider2D myCol = GetComponent<Collider2D>();
+                Collider2D oppCol = p.GetComponent<Collider2D>();
+                if (myCol != null && oppCol != null)
+                {
+                    Physics2D.IgnoreCollision(myCol, oppCol, true);
+                }
                 break;
             }
         }
@@ -168,11 +191,11 @@ public class PlayerController : MonoBehaviourPun
 
         if (transform.position.x < opponent.position.x)
         {
-            skeletonAnimation.Skeleton.ScaleX = 1; // Blick nach rechts
+            skeletonAnimation.Skeleton.ScaleX = 1;
         }
         else
         {
-            skeletonAnimation.Skeleton.ScaleX = -1; // Blick nach links
+            skeletonAnimation.Skeleton.ScaleX = -1;
         }
     }
 
@@ -189,64 +212,54 @@ public class PlayerController : MonoBehaviourPun
             else
                 photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "idle active", true);
         }
-        else if (rb != null)
-        {
-            if (moveInput < 0)
-            {
-                if (rb.velocity.y > 0.1f) photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "jump C", true);
-                else if (rb.velocity.y < -0.1f) photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "jump B", true);
-            }
-            else
-            {
-                if (rb.velocity.y > 0.1f) photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "jump B", true);
-                else if (rb.velocity.y < -0.1f) photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "jump C", true);
-            }
-        }
     }
 
-    // --- DAMAGE & HIT SYSTEM ---
-
-    public void TakeDamage(float damage)
-    {
-        if (!photonView.IsMine) return;
-
-        if (isBlocking)
-        {
-            damage *= 0.2f; // Block reduziert Schaden um 80%
-        }
-
-        currentHealth -= damage;
-        Debug.Log(photonView.Owner.NickName + " HP: " + currentHealth);
-
-        if (currentHealth <= 0)
-        {
-            photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "knockdown", false);
-            // Hier später KO-Logik einbauen
-        }
-    }
-
+    // Hit-Logik direkt über Distanz
     private void CheckHit(float damage)
     {
-        if (opponent == null) return;
-
-        // Prüft Distanz zum Gegner für Hits
-        float distance = Vector2.Distance(transform.position, opponent.position);
-        if (distance <= attackRange)
+        if (opponent == null)
         {
+            Debug.LogWarning("⚠️ Kein Gegner gefunden zum Treffen!");
+            return;
+        }
+
+        float dist = Vector2.Distance(transform.position, opponent.position);
+        if (dist <= attackRange)
+        {
+            Debug.Log($"🎯 [HIT SUCCESS] Gegner getroffen! Distanz: {dist:F2}m / Range: {attackRange}m");
             PlayerController target = opponent.GetComponent<PlayerController>();
             if (target != null)
             {
                 target.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage);
             }
         }
+        else
+        {
+            Debug.Log($"❌ [HIT MISSED] Zu weit weg! Distanz: {dist:F2}m / Range: {attackRange}m");
+        }
     }
 
-    // --- RPCs ---
-
     [PunRPC]
-    void RPC_TakeDamage(float damage)
+    public void RPC_TakeDamage(float damage)
     {
-        TakeDamage(damage);
+        if (isBlocking)
+        {
+            damage *= 0.2f;
+            Debug.Log("🛡️ [BLOCK] Schaden geblockt! Nur 20% kassiert.");
+        }
+
+        currentHealth -= damage;
+        if (currentHealth < 0) currentHealth = 0;
+
+        string playerName = photonView.IsMine ? "DU" : "GEGNER";
+        Debug.Log($"🩸 [DAMAGE] Player ({playerName}) hat {damage} Schaden kassiert! Rest-HP: {currentHealth}/{maxHealth}");
+
+        if (currentHealth <= 0 && !isDead)
+        {
+            isDead = true;
+            PlaySpineAnimation("knockdown", false);
+            Debug.Log($"☠️ [K.O.] Player ({playerName}) ist K.O. gegangen!");
+        }
     }
 
     [PunRPC]
@@ -286,6 +299,10 @@ public class PlayerController : MonoBehaviourPun
             skeletonAnimation.AnimationState.SetAnimation(0, fullPath, loop);
             currentAnimation = fullPath;
         }
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
     }
 
     private void OnCollisionEnter2D(Collision2D collision)

@@ -242,6 +242,13 @@ MonoBehaviour:
   moveSpeed: 15
   jumpForce: 12
   animationFolder: 1_
+  maxHealth: 100
+  currentHealth: 100
+  attackPoint: {fileID: 0}
+  attackRange: 1.5
+  opponentLayer:
+    serializedVersion: 2
+    m_Bits: 0
   groundTag: Floor
 --- !u!114 &8533411863444360337
 MonoBehaviour:
@@ -260,9 +267,8 @@ MonoBehaviour:
   prefixField: -1
   Synchronization: 3
   OwnershipTransfer: 0
-  observableSearch: 2
+  observableSearch: 0
   ObservedComponents:
-  - {fileID: 2759134560843549909}
   - {fileID: -6660432134678278805}
   sceneViewId: 0
   InstantiationId: 0
@@ -280,6 +286,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_SynchronizePosition: 1
-  m_SynchronizeRotation: 1
+  m_SynchronizeRotation: 0
   m_SynchronizeScale: 0
   m_UseLocal: 0
