@@ -41,6 +41,8 @@ MonoBehaviour:
   - RespawnSpaceship
   - RPC_PlayAttackAnimation
   - RPC_PlaySpineAnimation
+  - RPC_TakeDamage
+  - RPC_ShowEndScreen
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

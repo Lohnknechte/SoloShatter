@@ -17,7 +17,6 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
     [Header("Combat & Health")]
     public float maxHealth = 100f;
     public float currentHealth = 100f;
-    public float attackRange = 3.5f; 
 
     [Header("Ground Check Settings")]
     public string groundTag = "Floor";
@@ -52,24 +51,6 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
 
-        // Deaktiviert Kollision zwischen Hitboxen der Player komplett -> Tekken Jump-Over
-        Collider2D myCollider = GetComponent<Collider2D>();
-        if (myCollider != null)
-        {
-            PlayerController[] players = FindObjectsOfType<PlayerController>();
-            foreach (var p in players)
-            {
-                if (p != this)
-                {
-                    Collider2D otherCollider = p.GetComponent<Collider2D>();
-                    if (otherCollider != null)
-                    {
-                        Physics2D.IgnoreCollision(myCollider, otherCollider, true);
-                    }
-                }
-            }
-        }
-
         PlaySpineAnimation("idle active", true);
     }
 
@@ -102,29 +83,29 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             return;
         }
 
-        // Attacks
+        // Attacks mit neuen Ranges (Jab: 6.5m, Kick High: 9.5m)
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            Debug.Log("💥 [ATTACK] Jab Single gestartet!");
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab single", 0.25f, 15f);
+            Debug.Log("💥 [ATTACK] Jab Single!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab single", 0.25f, 15f, 6.5f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            Debug.Log("💥 [ATTACK] Jab Double gestartet!");
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab double", 0.3f, 25f);
+            Debug.Log("💥 [ATTACK] Jab Double!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab double", 0.3f, 25f, 7.5f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            Debug.Log("💥 [ATTACK] Kick High gestartet!");
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick high", 0.35f, 35f);
+            Debug.Log("💥 [ATTACK] Kick High!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick high", 0.35f, 35f, 9.5f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            Debug.Log("💥 [ATTACK] Kick Low gestartet!");
-            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick low", 0.3f, 20f);
+            Debug.Log("💥 [ATTACK] Kick Low!");
+            photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick low", 0.3f, 20f, 7.0f);
             return;
         }
 
@@ -214,19 +195,14 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         }
     }
 
-    // Hit-Logik direkt über Distanz
-    private void CheckHit(float damage)
+    private void CheckHit(float damage, float range)
     {
-        if (opponent == null)
-        {
-            Debug.LogWarning("⚠️ Kein Gegner gefunden zum Treffen!");
-            return;
-        }
+        if (opponent == null) return;
 
         float dist = Vector2.Distance(transform.position, opponent.position);
-        if (dist <= attackRange)
+        if (dist <= range)
         {
-            Debug.Log($"🎯 [HIT SUCCESS] Gegner getroffen! Distanz: {dist:F2}m / Range: {attackRange}m");
+            Debug.Log($"🎯 [HIT SUCCESS] Distanz: {dist:F2}m / Range: {range}m");
             PlayerController target = opponent.GetComponent<PlayerController>();
             if (target != null)
             {
@@ -235,7 +211,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         }
         else
         {
-            Debug.Log($"❌ [HIT MISSED] Zu weit weg! Distanz: {dist:F2}m / Range: {attackRange}m");
+            Debug.Log($"❌ [HIT MISSED] Zu weit weg! Distanz: {dist:F2}m / Range: {range}m");
         }
     }
 
@@ -245,20 +221,26 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         if (isBlocking)
         {
             damage *= 0.2f;
-            Debug.Log("🛡️ [BLOCK] Schaden geblockt! Nur 20% kassiert.");
+            Debug.Log("🛡️ [BLOCK] Schaden geblockt!");
         }
 
         currentHealth -= damage;
         if (currentHealth < 0) currentHealth = 0;
 
-        string playerName = photonView.IsMine ? "DU" : "GEGNER";
-        Debug.Log($"🩸 [DAMAGE] Player ({playerName}) hat {damage} Schaden kassiert! Rest-HP: {currentHealth}/{maxHealth}");
+        Debug.Log($"🩸 [DAMAGE] Rest-HP: {currentHealth}/{maxHealth}");
 
         if (currentHealth <= 0 && !isDead)
         {
             isDead = true;
             PlaySpineAnimation("knockdown", false);
-            Debug.Log($"☠️ [K.O.] Player ({playerName}) ist K.O. gegangen!");
+
+            // Winner UI aufrufen
+            GameManager gm = FindObjectOfType<GameManager>();
+            if (gm != null)
+            {
+                string winnerText = photonView.IsMine ? "GEGNER GEWINNT!" : "DU HAST GEWONNEN!";
+                gm.photonView.RPC("RPC_ShowEndScreen", RpcTarget.All, winnerText);
+            }
         }
     }
 
@@ -269,19 +251,19 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
     }
 
     [PunRPC]
-    void RPC_PlayAttackAnimation(string animName, float duration, float damage)
+    void RPC_PlayAttackAnimation(string animName, float duration, float damage, float range)
     {
-        StartCoroutine(AttackRoutine(animName, duration, damage));
+        StartCoroutine(AttackRoutine(animName, duration, damage, range));
     }
 
-    System.Collections.IEnumerator AttackRoutine(string animName, float duration, float damage)
+    System.Collections.IEnumerator AttackRoutine(string animName, float duration, float damage, float range)
     {
         isAttacking = true;
         PlaySpineAnimation(animName, false);
 
         if (photonView.IsMine)
         {
-            CheckHit(damage);
+            CheckHit(damage, range);
         }
 
         yield return new WaitForSeconds(duration);
@@ -301,9 +283,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         }
     }
 
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-    }
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info) {}
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
