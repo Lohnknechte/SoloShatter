@@ -24,6 +24,9 @@ public class PlayerController : MonoBehaviourPun
     private float lastMoveInput = 0f;
     private float moveInput = 0f;
 
+    // Gegner-Referenz
+    private Transform opponent;
+
     void Awake()
     {
         if (skeletonAnimation == null)
@@ -44,17 +47,19 @@ public class PlayerController : MonoBehaviourPun
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
 
-        if (skeletonAnimation != null) skeletonAnimation.Skeleton.ScaleX = 1;
-
         PlaySpineAnimation("idle active", true);
     }
 
     void Update()
     {
-        // 1. Nur den eigenen Charakter steuern
-        if (!photonView.IsMine) return;
+        // Immer nach dem Gegner suchen
+        FindOpponent();
 
-        // 2. Nicht reagieren, wenn wir noch nicht voll gejoined sind
+        // Ausrichtung zum Gegner (Flip)
+        HandleFacingDirection();
+
+        // Nur den eigenen Charakter steuern
+        if (!photonView.IsMine) return;
         if (!PhotonNetwork.InRoom) return;
 
         // Block-Input (S-Taste halten)
@@ -71,7 +76,6 @@ public class PlayerController : MonoBehaviourPun
             isBlocking = false;
         }
 
-        // Keine Bewegung/Angriffe, wenn am Blocken oder Angreifen
         if (isAttacking || isBlocking)
         {
             moveInput = 0f;
@@ -100,10 +104,20 @@ public class PlayerController : MonoBehaviourPun
             return;
         }
 
-        // WASD Input
+        // Steuerung relativ zum Gegner:
+        // D = Auf den Gegner zu (Vorwärts), A = Vom Gegner weg (Rückwärts)
         moveInput = 0f;
-        if (Input.GetKey(KeyCode.D)) moveInput = 1f;
-        else if (Input.GetKey(KeyCode.A)) moveInput = -0.5f; // Rückwärts langsamer
+
+        bool isLeftOfOpponent = opponent == null || transform.position.x < opponent.position.x;
+
+        if (Input.GetKey(KeyCode.D))
+        {
+            moveInput = isLeftOfOpponent ? 1f : -1f; // Vorwärts
+        }
+        else if (Input.GetKey(KeyCode.A))
+        {
+            moveInput = isLeftOfOpponent ? -0.5f : 0.5f; // Rückwärts
+        }
 
         if (isGrounded) lastMoveInput = moveInput;
 
@@ -116,13 +130,11 @@ public class PlayerController : MonoBehaviourPun
             isGrounded = false;
         }
 
-        // Animations-Logik
         UpdateMovementAnimations();
     }
 
     void FixedUpdate()
     {
-        // Physics-Bewegung nur auf dem eigenen Client ausführen
         if (!photonView.IsMine) return;
 
         if (!isAttacking && !isBlocking)
@@ -131,22 +143,55 @@ public class PlayerController : MonoBehaviourPun
         }
     }
 
+    private void FindOpponent()
+    {
+        if (opponent != null) return;
+
+        PlayerController[] allPlayers = FindObjectsOfType<PlayerController>();
+        foreach (var p in allPlayers)
+        {
+            if (p != this)
+            {
+                opponent = p.transform;
+                break;
+            }
+        }
+    }
+
+    private void HandleFacingDirection()
+    {
+        if (opponent == null || skeletonAnimation == null) return;
+
+        // Dreht den ScaleX von Spine um, sodass man immer zum Gegner schaut
+        if (transform.position.x < opponent.position.x)
+        {
+            skeletonAnimation.Skeleton.ScaleX = 1;
+        }
+        else
+        {
+            skeletonAnimation.Skeleton.ScaleX = -1;
+        }
+    }
+
     private void UpdateMovementAnimations()
     {
         if (isAttacking || isBlocking) return;
 
+        bool isMovingForward = (skeletonAnimation.Skeleton.ScaleX > 0 && moveInput > 0) || (skeletonAnimation.Skeleton.ScaleX < 0 && moveInput < 0);
+        bool isMovingBackward = (skeletonAnimation.Skeleton.ScaleX > 0 && moveInput < 0) || (skeletonAnimation.Skeleton.ScaleX < 0 && moveInput > 0);
+
         if (isGrounded)
         {
-            if (moveInput > 0)
+            if (isMovingForward)
                 photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "run", true);
-            else if (moveInput < 0)
+            else if (isMovingBackward)
                 photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "walk normal", true);
             else
                 photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "idle active", true);
         }
         else if (rb != null)
         {
-            if (lastMoveInput < 0)
+            if (isMovingBackward)
             {
                 if (rb.velocity.y > 0.1f) photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "jump C", true);
                 else if (rb.velocity.y < -0.1f) photonView.RPC("RPC_PlaySpineAnimation", RpcTarget.All, "jump B", true);
