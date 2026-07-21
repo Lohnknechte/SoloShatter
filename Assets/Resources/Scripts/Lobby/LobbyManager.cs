@@ -6,41 +6,50 @@ using Photon.Realtime;
 
 public class LobbyManager : MonoBehaviourPunCallbacks
 {
-    [Header("UI Elements")]
+    [Header("Panels")]
+    public GameObject mainPanel;        
+    public GameObject roomPanel;        
+
+    [Header("Main Menu UI")]
     public TMP_InputField roomInput;   
     public Button createButton;        
     public Button joinButton;          
     public TMP_Text statusText;        
+
+    [Header("Room Panel UI")]
+    public TMP_Text roomCodeText;       
+    public TMP_Text playerListText;     
+    public Button startGameButton;     
 
     [Header("Scene Settings")]
     public string gameplaySceneName = "KampfSzene"; 
 
     void Start()
     {
-        if (createButton == null || joinButton == null || statusText == null)
-        {
-            Debug.LogError("FEHLER: Bitte ziehe die Buttons und den Status-Text im Inspector auf das LobbyManager-Objekt!");
-            return;
-        }
+        mainPanel.SetActive(true);
+        roomPanel.SetActive(false);
 
-        // Knöpfe sofort ausschalten beim Start!
         createButton.interactable = false;
         joinButton.interactable = false;
 
-        if (PhotonNetwork.IsConnected)
-        {
-            PhotonNetwork.Disconnect();
-        }
+        PhotonNetwork.AutomaticallySyncScene = true;
 
-        statusText.text = "Verbinde mit Server...";
-        PhotonNetwork.ConnectUsingSettings();
+        // Beseitigt den TimeoutDisconnect-Fehler
+        if (PhotonNetwork.IsConnectedAndReady)
+        {
+            OnConnectedToMaster();
+        }
+        else if (!PhotonNetwork.IsConnected)
+        {
+            if (statusText != null) statusText.text = "Verbinde mit Server...";
+            PhotonNetwork.ConnectUsingSettings();
+        }
     }
 
     public override void OnConnectedToMaster()
     {
         if (statusText != null) statusText.text = "Verbunden! Lobby bereit.";
         
-        // Erst JETZT werden die Knöpfe freigeschaltet
         if (createButton != null) createButton.interactable = true;
         if (joinButton != null) joinButton.interactable = true;
         
@@ -49,50 +58,65 @@ public class LobbyManager : MonoBehaviourPunCallbacks
 
     public void CreateRoom()
     {
-        // DOPPELTER SCHUTZ: Wenn wir noch gar nicht bereit sind, brechen wir sauber ab
-        if (!PhotonNetwork.IsConnectedAndReady)
-        {
-            if (statusText != null) statusText.text = "Bitte warten... Verbindung wird aufgebaut.";
-            Debug.LogWarning("CreateRoom abgebrochen: Photon ist noch nicht bereit.");
-            return;
-        }
+        if (!PhotonNetwork.IsConnectedAndReady) return;
 
-        Debug.Log(">>> DER CODE WURDE ERREICHT! CreateRoom läuft! <<<");
-
-        string roomName = "StandardRaum";
+        string roomName = GenerateRandomRoomCode(6);
         if (roomInput != null && !string.IsNullOrEmpty(roomInput.text))
         {
-            roomName = roomInput.text;
+            roomName = roomInput.text.ToUpper();
         }
 
-        if (statusText != null) statusText.text = "Erstelle Raum: " + roomName + "...";
-        
         RoomOptions roomOptions = new RoomOptions { MaxPlayers = 4 };
         PhotonNetwork.CreateRoom(roomName, roomOptions);
     }
 
     public void JoinRoom()
     {
-        if (!PhotonNetwork.IsConnectedAndReady)
-        {
-            if (statusText != null) statusText.text = "Bitte warten... Verbindung wird aufgebaut.";
-            return;
-        }
+        if (!PhotonNetwork.IsConnectedAndReady) return;
 
-        string roomName = "Play";
         if (roomInput != null && !string.IsNullOrEmpty(roomInput.text))
         {
-            roomName = roomInput.text;
+            PhotonNetwork.JoinRoom(roomInput.text.ToUpper());
         }
-
-        if (statusText != null) statusText.text = "Trete Raum bei: " + roomName + "...";
-        PhotonNetwork.JoinRoom(roomName);
+        else
+        {
+            if (statusText != null) statusText.text = "Bitte Raumcode eingeben!";
+        }
     }
 
     public override void OnJoinedRoom()
     {
-        if (statusText != null) statusText.text = "Raum erfolgreich betreten! Lade Spiel...";
-        
+        mainPanel.SetActive(false);
+        roomPanel.SetActive(true);
+
+        roomCodeText.text = "Code: " + PhotonNetwork.CurrentRoom.Name;
+        UpdatePlayerList();
+    }
+
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        UpdatePlayerList();
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        UpdatePlayerList();
+    }
+
+    private void UpdatePlayerList()
+    {
+        playerListText.text = "<b>Spieler:</b>\n";
+        foreach (Player player in PhotonNetwork.PlayerList)
+        {
+            string name = string.IsNullOrEmpty(player.NickName) ? "Player " + player.ActorNumber : player.NickName;
+            playerListText.text += name + (player.IsMasterClient ? " (Host)" : "") + "\n";
+        }
+
+        startGameButton.gameObject.SetActive(PhotonNetwork.IsMasterClient);
+    }
+
+    public void StartGame()
+    {
         if (PhotonNetwork.IsMasterClient)
         {
             PhotonNetwork.LoadLevel(gameplaySceneName);
@@ -101,6 +125,17 @@ public class LobbyManager : MonoBehaviourPunCallbacks
 
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        if (statusText != null) statusText.text = "Beitreten fehlgeschlagen: " + message;
+        if (statusText != null) statusText.text = "Fehler: " + message;
+    }
+
+    private string GenerateRandomRoomCode(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        char[] stringChars = new char[length];
+        for (int i = 0; i < length; i++)
+        {
+            stringChars[i] = chars[Random.Range(0, chars.Length)];
+        }
+        return new string(stringChars);
     }
 }

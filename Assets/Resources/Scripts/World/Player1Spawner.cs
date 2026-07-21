@@ -1,20 +1,13 @@
 using UnityEngine;
-using Photon.Pun;
 
-public class Player1Spawner : MonoBehaviourPunCallbacks
+public class Player1Spawner : MonoBehaviour
 {
+    [Header("Spawn Einstellungen")]
+    public Transform spawnPoint;
+    public GameObject playerPrefab;
+
     void Start()
     {
-        // Da wir durch die Lobby bereits im Raum sind, spawnen wir den Stickman sofort!
-        if (PhotonNetwork.InRoom)
-        {
-            Debug.Log("Spawner aktiv: Erzeuge New SkeletonDataAsset...");
-            // Wenn dein Prefab im Resources-Ordner "Player" heißt:
-            PhotonNetwork.Instantiate("Player", spawnPoint.position, Quaternion.identity);
-        }
-        else
-        {
-            Debug.LogError("Fehler: Spawner wurde gestartet, aber wir sind in keinem Photon-Raum!");
-        }
+        Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
     }
 }

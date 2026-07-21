@@ -46,6 +46,7 @@ GameObject:
   - component: {fileID: 3070511828641415598}
   - component: {fileID: 4866233218403697685}
   - component: {fileID: 2759134560843549909}
+  - component: {fileID: 8533411863444360337}
   m_Layer: 0
   m_Name: Spine GameObject (stickman fighter)
   m_TagString: Untagged
@@ -159,7 +160,7 @@ MonoBehaviour:
   physicsMovementRelativeTo: {fileID: 0}
   updateTiming: 1
   unscaledTime: 0
-  _animationName: 
+  _animationName: 2_Sword/idle
   loop: 1
   timeScale: 1
 --- !u!70 &3070511828641415598
@@ -236,8 +237,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f7ece940c9235b4096329c7ec50e29e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  skeletonAnimation: {fileID: 0}
+  skeletonAnimation: {fileID: 8614133567336045555}
   moveSpeed: 15
   jumpForce: 12
   animationFolder: 1_
   groundTag: Floor
+--- !u!114 &8533411863444360337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6821621546697060352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 0
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
