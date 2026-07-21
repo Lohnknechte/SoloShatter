@@ -47,8 +47,9 @@ GameObject:
   - component: {fileID: 4866233218403697685}
   - component: {fileID: 2759134560843549909}
   - component: {fileID: 8533411863444360337}
+  - component: {fileID: 6304946279004647908}
   m_Layer: 0
-  m_Name: Spine GameObject (stickman fighter)
+  m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -160,7 +161,7 @@ MonoBehaviour:
   physicsMovementRelativeTo: {fileID: 0}
   updateTiming: 1
   unscaledTime: 0
-  _animationName: 2_Sword/idle
+  _animationName: 
   loop: 1
   timeScale: 1
 --- !u!70 &3070511828641415598
@@ -264,3 +265,26 @@ MonoBehaviour:
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
+--- !u!114 &6304946279004647908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6821621546697060352}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a060dbc0571c904ca062a68693c34ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  walkSpeed: 12
+  runSpeed: 18
+  jumpForce: 15
+  gravityScale: 4
+  idleAnim: 1_/idle
+  walkAnim: 1_/walk normal
+  runAnim: 1_/run
+  runStopAnim: 1_/run stop
+  jumpA: 1_/jump A
+  jumpB: 1_/jump B
+  jumpC: 1_/jump C
