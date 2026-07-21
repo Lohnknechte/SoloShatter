@@ -48,7 +48,7 @@ GameObject:
   - component: {fileID: 2759134560843549909}
   - component: {fileID: 8533411863444360337}
   m_Layer: 0
-  m_Name: Spine GameObject (stickman fighter)
+  m_Name: PlayerPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
