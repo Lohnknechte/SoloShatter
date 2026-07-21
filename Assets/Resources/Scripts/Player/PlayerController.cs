@@ -19,7 +19,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
     public float maxHealth = 100f;
     public float currentHealth = 100f;
 
-    [Header("UI System (Optional direkt am Player/Canvas)")]
+    [Header("UI System")]
     public TMP_Text winTextUI;
 
     [Header("Ground Check Settings")]
@@ -55,13 +55,9 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
 
-        // Sucht automatisch nach TextMeshPro in der Scene, falls nicht zugewiesen
-        if (winTextUI == null)
-        {
-            winTextUI = FindObjectOfType<TMP_Text>();
-        }
-
-        if (winTextUI != null) winTextUI.gameObject.SetActive(false);
+        // Deaktiviert Trigger-Sensitivität für glattes Drüberspringen
+        Collider2D myCol = GetComponent<Collider2D>();
+        if (myCol != null) myCol.isTrigger = false;
 
         PlaySpineAnimation("idle active", true);
     }
@@ -75,7 +71,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
 
         if (!photonView.IsMine || !PhotonNetwork.InRoom) return;
 
-        // Blocken (S-Taste)
+        // Blocken
         if (Input.GetKey(KeyCode.S) && isGrounded)
         {
             if (!isBlocking)
@@ -95,7 +91,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             return;
         }
 
-        // Attacks mit festen Ranges
+        // Attacks
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
             photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab single", 0.25f, 15f, 6.5f);
@@ -129,7 +125,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             moveInput = -0.5f;
         }
 
-        // Jump (W)
+        // Jump
         if (Input.GetKeyDown(KeyCode.W) && isGrounded && rb != null)
         {
             rb.velocity = new Vector2(rb.velocity.x, 0);
@@ -163,6 +159,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             {
                 opponent = p.transform;
 
+                // Kollision zwischen beiden Playern KOMPLETT ignorieren (Verhindert Teleport/Jitter-Bugs)
                 Collider2D myCol = GetComponent<Collider2D>();
                 Collider2D oppCol = p.GetComponent<Collider2D>();
                 if (myCol != null && oppCol != null)
@@ -231,33 +228,52 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
 
         if (currentHealth <= 0 && !isDead)
         {
-            isDead = true;
-            
-            // Spielt die Ducken/Block-Animation statt Knockdown
-            PlaySpineAnimation("block bottom", true);
-
-            // Win Text direkt triggern
-            photonView.RPC("RPC_ShowEndMessage", RpcTarget.All);
+            // RPC auf allen Clients ausführen, damit der Verlierer überall duckt
+            photonView.RPC("RPC_Die", RpcTarget.All);
         }
     }
 
     [PunRPC]
-    void RPC_ShowEndMessage()
+    void RPC_Die()
     {
+        isDead = true;
+        if (rb != null) rb.velocity = Vector2.zero;
+
+        // Ducken-Animation EINMALIG ohne Loop abspielen
+        PlaySpineAnimation("block bottom", false);
+
+        // Text auf beiden Bildschirmen einschalten
+        ShowWinText();
+    }
+
+    void ShowWinText()
+    {
+        // Sucht den Text in der Scene (auch wenn er inaktiv ist)
+        TMP_Text[] texts = Resources.FindObjectsOfTypeAll<TMP_Text>();
+        foreach (var t in texts)
+        {
+            if (t.gameObject.name.Contains("WinnerText") || t.gameObject.CompareTag("WinText"))
+            {
+                winTextUI = t;
+                break;
+            }
+        }
+
         if (winTextUI != null)
         {
             winTextUI.gameObject.SetActive(true);
-
-            if (isDead)
+            if (winTextUI.transform.parent != null)
             {
-                if (photonView.IsMine)
-                {
-                    winTextUI.text = "ROUND OVER\nGEGNER GEWINNT!";
-                }
-                else
-                {
-                    winTextUI.text = "ROUND OVER\nDU HAST GEWONNEN!";
-                }
+                winTextUI.transform.parent.gameObject.SetActive(true);
+            }
+
+            if (photonView.IsMine)
+            {
+                winTextUI.text = "ROUND OVER\nGEGNER GEWINNT!";
+            }
+            else
+            {
+                winTextUI.text = "ROUND OVER\nDU HAST GEWONNEN!";
             }
         }
     }
