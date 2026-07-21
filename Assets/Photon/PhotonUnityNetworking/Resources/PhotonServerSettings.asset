@@ -43,6 +43,7 @@ MonoBehaviour:
   - RPC_PlaySpineAnimation
   - RPC_TakeDamage
   - RPC_ShowEndScreen
+  - RPC_ShowEndMessage
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0
