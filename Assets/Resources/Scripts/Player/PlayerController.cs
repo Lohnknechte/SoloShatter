@@ -3,7 +3,7 @@ using Spine.Unity;
 using Photon.Pun;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class PlayerController : MonoBehaviourPun, IPunObservable
+public class PlayerController : MonoBehaviourPun
 {
     [Header("Components")]
     public SkeletonAnimation skeletonAnimation;
@@ -23,9 +23,6 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
     private bool isBlocking = false;
     private float lastMoveInput = 0f;
     private float moveInput = 0f;
-
-    // Netzwerk-Variablen für flüssige Synchronisation
-    private Vector2 networkPosition;
 
     void Awake()
     {
@@ -54,14 +51,10 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
 
     void Update()
     {
-        // 1. Für fremde Spieler: Interpolation & Netzwerk-Anpassungen ausführen
-        if (!photonView.IsMine)
-        {
-            transform.position = Vector2.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
-            return;
-        }
+        // 1. Nur den eigenen Charakter steuern
+        if (!photonView.IsMine) return;
 
-        // 2. Nur Befehle verarbeiten, wenn im Raum
+        // 2. Nicht reagieren, wenn wir noch nicht voll gejoined sind
         if (!PhotonNetwork.InRoom) return;
 
         // Block-Input (S-Taste halten)
@@ -166,19 +159,7 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         }
     }
 
-    // --- NETZWERK-SYNCHRONISATION ---
-
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-        {
-            stream.SendNext(transform.position);
-        }
-        else
-        {
-            networkPosition = (Vector2)stream.ReceiveNext();
-        }
-    }
+    // --- RPCs ---
 
     [PunRPC]
     void RPC_PlaySpineAnimation(string animName, bool loop)
