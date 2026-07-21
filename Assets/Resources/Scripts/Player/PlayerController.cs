@@ -1,6 +1,7 @@
 using UnityEngine;
 using Spine.Unity;
 using Photon.Pun;
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviourPun, IPunObservable
@@ -17,6 +18,9 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
     [Header("Combat & Health")]
     public float maxHealth = 100f;
     public float currentHealth = 100f;
+
+    [Header("UI System (Optional direkt am Player/Canvas)")]
+    public TMP_Text winTextUI;
 
     [Header("Ground Check Settings")]
     public string groundTag = "Floor";
@@ -51,6 +55,14 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         }
 
+        // Sucht automatisch nach TextMeshPro in der Scene, falls nicht zugewiesen
+        if (winTextUI == null)
+        {
+            winTextUI = FindObjectOfType<TMP_Text>();
+        }
+
+        if (winTextUI != null) winTextUI.gameObject.SetActive(false);
+
         PlaySpineAnimation("idle active", true);
     }
 
@@ -83,28 +95,24 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
             return;
         }
 
-        // Attacks mit neuen Ranges (Jab: 6.5m, Kick High: 9.5m)
+        // Attacks mit festen Ranges
         if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            Debug.Log("💥 [ATTACK] Jab Single!");
             photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab single", 0.25f, 15f, 6.5f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            Debug.Log("💥 [ATTACK] Jab Double!");
             photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "jab double", 0.3f, 25f, 7.5f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            Debug.Log("💥 [ATTACK] Kick High!");
             photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick high", 0.35f, 35f, 9.5f);
             return;
         }
         if (Input.GetKeyDown(KeyCode.DownArrow))
         {
-            Debug.Log("💥 [ATTACK] Kick Low!");
             photonView.RPC("RPC_PlayAttackAnimation", RpcTarget.All, "kick low", 0.3f, 20f, 7.0f);
             return;
         }
@@ -202,16 +210,11 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         float dist = Vector2.Distance(transform.position, opponent.position);
         if (dist <= range)
         {
-            Debug.Log($"🎯 [HIT SUCCESS] Distanz: {dist:F2}m / Range: {range}m");
             PlayerController target = opponent.GetComponent<PlayerController>();
             if (target != null)
             {
                 target.photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage);
             }
-        }
-        else
-        {
-            Debug.Log($"❌ [HIT MISSED] Zu weit weg! Distanz: {dist:F2}m / Range: {range}m");
         }
     }
 
@@ -221,25 +224,40 @@ public class PlayerController : MonoBehaviourPun, IPunObservable
         if (isBlocking)
         {
             damage *= 0.2f;
-            Debug.Log("🛡️ [BLOCK] Schaden geblockt!");
         }
 
         currentHealth -= damage;
         if (currentHealth < 0) currentHealth = 0;
 
-        Debug.Log($"🩸 [DAMAGE] Rest-HP: {currentHealth}/{maxHealth}");
-
         if (currentHealth <= 0 && !isDead)
         {
             isDead = true;
-            PlaySpineAnimation("knockdown", false);
+            
+            // Spielt die Ducken/Block-Animation statt Knockdown
+            PlaySpineAnimation("block bottom", true);
 
-            // Winner UI aufrufen
-            GameManager gm = FindObjectOfType<GameManager>();
-            if (gm != null)
+            // Win Text direkt triggern
+            photonView.RPC("RPC_ShowEndMessage", RpcTarget.All);
+        }
+    }
+
+    [PunRPC]
+    void RPC_ShowEndMessage()
+    {
+        if (winTextUI != null)
+        {
+            winTextUI.gameObject.SetActive(true);
+
+            if (isDead)
             {
-                string winnerText = photonView.IsMine ? "GEGNER GEWINNT!" : "DU HAST GEWONNEN!";
-                gm.photonView.RPC("RPC_ShowEndScreen", RpcTarget.All, winnerText);
+                if (photonView.IsMine)
+                {
+                    winTextUI.text = "ROUND OVER\nGEGNER GEWINNT!";
+                }
+                else
+                {
+                    winTextUI.text = "ROUND OVER\nDU HAST GEWONNEN!";
+                }
             }
         }
     }
